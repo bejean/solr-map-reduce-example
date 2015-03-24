@@ -12,19 +12,20 @@ tmpdir=/tmp/solr-map-reduce
 ## Solr + Hadoop Dists
 #######################
 
-# Using Solr 4.8
-solr_distrib="solr-4.8.0"
-solr_distrib_url="http://apache.mirrors.lucidnetworks.net/lucene/solr/4.8.0/$solr_distrib.tgz"
+# Using Solr 4.10.4
+solr_version="4.10.4"
+solr_distrib="solr-$solr_version"
+solr_distrib_url="http://archive.apache.org/dist/lucene/solr/$solr_version/$solr_distrib.tgz"
 
-# you should replace with a local mirror. Find one at http://www.apache.org/dyn/closer.cgi/hadoop/common/hadoop-2.2.0/
-hadoop_distrib="hadoop-2.2.0"
-hadoop_distrib_url="http://www.eng.lsu.edu/mirrors/apache/hadoop/common/hadoop-2.2.0/$hadoop_distrib.tar.gz"
+# Using Hadoop 2.2.0
+hadoop_version="2.2.0"
+hadoop_distrib="hadoop-$hadoop_version"
+hadoop_distrib_url="http://archive.apache.org/dist/hadoop/core/$hadoop_distrib/$hadoop_distrib.tar.gz"
 
 #########################################################
 # NameNode port: 8020, DataNode ports: 50010, 50020, ResourceManager port: 8032 ZooKeeper port: 9983, Solr port: 8983
 # NameNode web port: 50070, DataNodes web port: 50075
 #########################################################
-
 
 # collection to work with
 collection=collection1
@@ -63,6 +64,9 @@ else
 fi
 
 # extract hadoop
+if [ -d "$hadoop_distrib" ]; then
+  rm -rf "$hadoop_distrib"
+fi
 if [ ! -d "$hadoop_distrib" ]; then
     tar -zxf "$hadoop_distrib.tar.gz"
     if [[ $? -ne 0 ]]
@@ -70,8 +74,6 @@ if [ ! -d "$hadoop_distrib" ]; then
       echo "Failed to extract hadoop from $hadoop_distrib.tar.gz"
       exit 1
     fi
-else
-    echo "$hadoop_distrib.tar.gz already extracted"
 fi
 
 # make the hadoop data dirs
@@ -145,6 +147,9 @@ else
 fi
 
 # extract solr
+if [ -d "$solr_distrib" ]; then
+  rm -rf "$solr_distrib"
+fi
 if [ ! -d "$solr_distrib" ]; then
     tar -zxf "$solr_distrib.tgz"
     if [[ $? -ne 0 ]]
@@ -152,8 +157,6 @@ if [ ! -d "$solr_distrib" ]; then
       echo "Failed to extract Solr from $solr_distrib.tgz"
       exit 1
     fi
-else
-    echo "$solr_distrib.tgz already extracted"
 fi
 
 # start solr
