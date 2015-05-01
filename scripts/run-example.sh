@@ -17,8 +17,8 @@ solr_version="4.10.4"
 solr_distrib="solr-$solr_version"
 solr_distrib_url="http://archive.apache.org/dist/lucene/solr/$solr_version/$solr_distrib.tgz"
 
-# Using Hadoop 2.2.0
-hadoop_version="2.2.0"
+# Using Hadoop 2.6.0
+hadoop_version="2.6.0"
 hadoop_distrib="hadoop-$hadoop_version"
 hadoop_distrib_url="http://archive.apache.org/dist/hadoop/core/$hadoop_distrib/$hadoop_distrib.tar.gz"
 
