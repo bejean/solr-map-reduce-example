@@ -10,7 +10,7 @@ cd $HOME
 #######################
 
 # Using Hadoop 2.6.0
-hadoop_version="2.2.0"
+hadoop_version="2.6.0"
 hadoop_distrib="hadoop-$hadoop_version"
 hadoop_distrib_url="http://archive.apache.org/dist/hadoop/core/$hadoop_distrib/$hadoop_distrib.tar.gz"
 
@@ -76,6 +76,12 @@ if [ ! -d "$hadoop_distrib" ]; then
     cp -r $HOME/hadoop_conf/conf $HOME/hadoop/etc/hadoop
 fi
 
+if [ -d "hadoop-data" ]; then
+    rm -rf hadoop-data
+fi
+mkdir hadoop-data
+mkdir hadoop-data/hdfs_disk1
+mkdir hadoop-data/tmp
 
 ## Get Solr
 ###########
@@ -119,7 +125,6 @@ echo "start hdfs"
 
 echo "stop any running namenode"
 $HADOOP_HOME/sbin/stop-dfs.sh
-#$HADOOP_HOME/sbin/hadoop-daemon.sh --script hdfs stop namenode
 
 echo "format namenode"
 
@@ -131,32 +136,11 @@ $HADOOP_HOME/bin/hdfs namenode -format -force
 
 $HADOOP_HOME/sbin/start-dfs.sh
 
-#echo "start namenode"
-#$HADOOP_HOME/sbin/hadoop-daemon.sh --script hdfs start namenode
-
-#echo "stop any running datanode"
-#$HADOOP_HOME/sbin/hadoop-daemon.sh --script hdfs stop datanode
-
-#echo "start datanode"
-#$HADOOP_HOME/sbin/hadoop-daemon.sh --script hdfs start datanode
-
 # start yarn
 echo "start yarn"
 
 $HADOOP_HOME/sbin/stop-yarn.sh
 $HADOOP_HOME/sbin/start-yarn.sh
-
-#echo "stop any running resourcemanager"
-#$HADOOP_HOME/sbin/yarn-daemon.sh stop resourcemanager
-
-#echo "stop any running nodemanager"
-#$HADOOP_HOME/sbin/yarn-daemon.sh stop nodemanager
-
-#echo "start resourcemanager"
-#$HADOOP_HOME/sbin/yarn-daemon.sh start resourcemanager
-
-#echo "start nodemanager"
-#$HADOOP_HOME/sbin/yarn-daemon.sh start nodemanager
 
 # hack wait for datanode to be ready and happy and able
 echo "sleep 10"
@@ -167,5 +151,5 @@ sleep 10
 
 # upload sample files
 samplefile=sample-statuses-20120906-141433-medium.avro
-$HADOOP_HOME/bin/hdfs dfs -mkdir hdfs://127.0.0.1/indir
-$HADOOP_HOME/bin/hdfs dfs -put $samplefile hdfs://127.0.0.1/indir/$samplefile
+$HADOOP_HOME/bin/hdfs dfs -mkdir /indir
+$HADOOP_HOME/bin/hdfs dfs -put $samplefile /indir/$samplefile

@@ -3,3 +3,4 @@
 *~
 example*.log
 hadoop
+hadoop_conf/conf.save
