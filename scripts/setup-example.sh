@@ -119,30 +119,6 @@ if [ ! -d "$solr_distrib" ]; then
 fi
 
 
-# solr comes with collection1 preconfigured, so we juse use that rather than using 
-# the collections api
-cd $solr_distrib
-mv example server
-
-echo "copy in twitter schema.xml file"
-cp -f solr_conf/schema.xml $solr_distrib/server/solr/collection1/conf/schema.xml
-
-# setting up a 2nd node
-cp -r -f server server2
-
-# Bootstrap config files to ZooKeeper
-java -classpath "server/solr-webapp/webapp/WEB-INF/lib/*:server/lib/ext/*" org.apache.solr.cloud.ZkCLI -cmd bootstrap -zkhost 127.0.0.1:9983 -solrhome server/solr -runzk 8983
-
-cd server
-java -DSTOP.PORT=7983 -DSTOP.KEY=key -jar start.jar --stop
-java -Xmx512m -DzkRun -DnumShards=2 -Dsolr.directoryFactory=solr.HdfsDirectoryFactory -Dsolr.lock.type=hdfs -Dsolr.hdfs.home=hdfs://127.0.0.1:8020/solr1 -Dsolr.hdfs.confdir=$hadoop_conf_dir -DSTOP.PORT=7983 -DSTOP.KEY=key -jar start.jar 1>example.log 2>&1 &
-
-cd ../server2
-java -DSTOP.PORT=6574 -DSTOP.KEY=key -jar start.jar --stop
-java -Xmx512m -Djetty.port=7574 -DzkHost=127.0.0.1:9983 -DnumShards=2 -Dsolr.directoryFactory=solr.HdfsDirectoryFactory -Dsolr.lock.type=hdfs -Dsolr.hdfs.home=hdfs://127.0.0.1:8020/solr2 -Dsolr.hdfs.confdir=$hadoop_conf_dir -DSTOP.PORT=6574 -DSTOP.KEY=key -jar start.jar 1>example2.log 2>&1 &
-
-
-
 ## Start HDFS+YARN
 ##################
 
@@ -175,3 +151,41 @@ sleep 10
 samplefile=sample-statuses-20120906-141433-medium.avro
 $HADOOP_HOME/bin/hdfs dfs -mkdir /indir
 $HADOOP_HOME/bin/hdfs dfs -put $samplefile /indir/$samplefile
+
+
+## Start Solr (2 nodes)
+#######################
+
+# solr comes with collection1 preconfigured, so we juse use that rather than using 
+# the collections api
+cd solr
+mv example server
+
+echo "copy in twitter schema.xml file"
+cp -f ../solr_conf/schema.xml server/solr/collection1/conf/schema.xml
+
+# setting up a 2nd node
+cp -rf server server2
+
+# Bootstrap config files to ZooKeeper
+java -classpath "server/solr-webapp/webapp/WEB-INF/lib/*:server/lib/ext/*" org.apache.solr.cloud.ZkCLI -cmd bootstrap -zkhost 127.0.0.1:9983 -solrhome server/solr -runzk 8983
+
+# stop solr nodes
+cd server2
+java -DSTOP.PORT=6574 -DSTOP.KEY=key -jar start.jar --stop
+cd ../server
+java -DSTOP.PORT=7983 -DSTOP.KEY=key -jar start.jar --stop
+
+echo "start solr node 1 (8983)"
+cd ../server
+java -Xmx512m -DzkRun -DnumShards=2 -Dsolr.directoryFactory=solr.HdfsDirectoryFactory -Dsolr.lock.type=hdfs -Dsolr.hdfs.home=hdfs://127.0.0.1:8020/solr1 -Dsolr.hdfs.confdir=$hadoop_conf_dir -DSTOP.PORT=7983 -DSTOP.KEY=key -jar start.jar 1>example.log 2>&1 &
+
+echo "start solr node 2 (7574)"
+cd ../server2
+java -Xmx512m -Djetty.port=7574 -DzkHost=127.0.0.1:9983 -DnumShards=2 -Dsolr.directoryFactory=solr.HdfsDirectoryFactory -Dsolr.lock.type=hdfs -Dsolr.hdfs.home=hdfs://127.0.0.1:8020/solr2 -Dsolr.hdfs.confdir=$hadoop_conf_dir -DSTOP.PORT=6574 -DSTOP.KEY=key -jar start.jar 1>example2.log 2>&1 &
+
+# wait for solr to be ready
+echo "sleep 15"
+sleep 15
+
+cd $HOME
