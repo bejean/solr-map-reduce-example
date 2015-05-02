@@ -162,6 +162,7 @@ cd solr
 mv example server
 
 echo "copy in twitter schema.xml file"
+# pwd hack, because otherwise for some reasons the next cp command failed !!!
 pwd
 cp -f ../solr_conf/schema.xml server/solr/collection1/conf/schema.xml
 
@@ -169,6 +170,8 @@ cp -f ../solr_conf/schema.xml server/solr/collection1/conf/schema.xml
 cp -rf server server2
 
 # Bootstrap config files to ZooKeeper
+# unzip solr.war because solr was necver stared and so jar file are not available in server/solr-webapp/webapp
+unzip -o server/webapps/solr.war -d server/solr-webapp/webapp
 java -classpath "server/solr-webapp/webapp/WEB-INF/lib/*:server/lib/ext/*" org.apache.solr.cloud.ZkCLI -cmd bootstrap -zkhost 127.0.0.1:9983 -solrhome server/solr -runzk 8983
 
 # stop solr nodes
