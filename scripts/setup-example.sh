@@ -144,8 +144,11 @@ $HADOOP_HOME/bin/hdfs dfs -put $samplefile /indir/$samplefile
 
 # solr comes with collection1 preconfigured, so we juse use that rather than using 
 # the collections api
-cd solr
+cd $SOLR_HOME
 mv example server
+
+# unzip solr.war because solr was necver stared and so jar file are not available in server/solr-webapp/webapp
+unzip -o server/webapps/solr.war -d server/solr-webapp/webapp
 
 echo "copy in twitter schema.xml file"
 # pwd hack, because otherwise for some reasons the next cp command failed !!!
@@ -157,24 +160,22 @@ cp -rf server server2
 
 # stop solr nodes
 echo "start solr nodes"
-cd server2
+cd $SOLR_HOME/server2
 java -DSTOP.PORT=6574 -DSTOP.KEY=key -jar start.jar --stop 1>stop.log 2>&1 &
-cd ../server
+cd $SOLR_HOME/server
 java -DSTOP.PORT=7983 -DSTOP.KEY=key -jar start.jar --stop 1>stop.log 2>&1 &
 sleep 5
 
 # Bootstrap config files to ZooKeeper
-# unzip solr.war because solr was necver stared and so jar file are not available in server/solr-webapp/webapp
-unzip -o server/webapps/solr.war -d server/solr-webapp/webapp
 java -classpath "server/solr-webapp/webapp/WEB-INF/lib/*:server/lib/ext/*" org.apache.solr.cloud.ZkCLI -cmd bootstrap -zkhost 127.0.0.1:9983 -solrhome server/solr -runzk 8983
 sleep 5
 
 echo "start solr node 1 (8983)"
-cd ../server
+cd $SOLR_HOME/server
 java -Xmx512m -DzkRun -DnumShards=2 -Dsolr.directoryFactory=solr.HdfsDirectoryFactory -Dsolr.lock.type=hdfs -Dsolr.hdfs.home=hdfs://127.0.0.1:8020/solr1 -Dsolr.hdfs.confdir=$HADOOP_CONF_DIR -DSTOP.PORT=7983 -DSTOP.KEY=key -jar start.jar 1>example.log 2>&1 &
 
 echo "start solr node 2 (7574)"
-cd ../server2
+cd $SOLR_HOME/server2
 java -Xmx512m -Djetty.port=7574 -DzkHost=127.0.0.1:9983 -DnumShards=2 -Dsolr.directoryFactory=solr.HdfsDirectoryFactory -Dsolr.lock.type=hdfs -Dsolr.hdfs.home=hdfs://127.0.0.1:8020/solr2 -Dsolr.hdfs.confdir=$HADOOP_CONF_DIR -DSTOP.PORT=6574 -DSTOP.KEY=key -jar start.jar 1>example2.log 2>&1 &
 
 # wait for solr to be ready

@@ -6,6 +6,7 @@ fi;
 
 export HADOOP_HOME=$HOME/hadoop
 export HADOOP_CONF_DIR=$HOME/hadoop_conf/conf
+export SOLR_HOME=$HOME/solr
 
 ## Solr + Hadoop Dists
 #######################
