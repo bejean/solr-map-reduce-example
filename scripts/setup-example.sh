@@ -153,7 +153,8 @@ unzip -o server/webapps/solr.war -d server/solr-webapp/webapp
 echo "copy in twitter schema.xml file"
 # pwd hack, because otherwise for some reasons the next cp command failed !!!
 pwd
-cp -f ../solr_conf/schema.xml server/solr/$COLLECTION/conf/schema.xml
+cp -f ../solr_conf/schema.xml server/solr/$COLLECTION/conf/.
+cp -f ../solr_conf/set-map-reduce-classpath.sh server/scripts/map-reduce/.
 
 # setting up a 2nd node
 cp -rf server server2
