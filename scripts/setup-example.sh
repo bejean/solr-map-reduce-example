@@ -45,7 +45,7 @@ solr_distrib_url="http://archive.apache.org/dist/lucene/solr/$solr_version/$solr
 
 # download hadoop
 if [ ! -f "$hadoop_distrib.tar.gz" ]; then
-    echo "Download Hadoop distribution $solr_distrib.tgz "
+    echo "Download Hadoop distribution $hadoop_distrib.tgz "
     curl -o $hadoop_distrib.tar.gz "$hadoop_distrib_url" 
     if [[ $? -ne 0 ]]
     then
@@ -76,6 +76,7 @@ if [ ! -d "$hadoop_distrib" ]; then
     cp -r $HOME/hadoop_conf/conf $HOME/hadoop/etc/hadoop
 fi
 
+# make the hadoop data dirs
 if [ -d "hadoop-data" ]; then
     rm -rf hadoop-data
 fi
@@ -117,8 +118,33 @@ if [ ! -d "$solr_distrib" ]; then
     ln -s $solr_distrib solr
 fi
 
-## Get Hadoop and Start HDFS+YARN
-#################################
+
+# solr comes with collection1 preconfigured, so we juse use that rather than using 
+# the collections api
+cd $solr_distrib
+mv example server
+
+echo "copy in twitter schema.xml file"
+cp -f solr_conf/schema.xml $solr_distrib/server/solr/collection1/conf/schema.xml
+
+# setting up a 2nd node
+cp -r -f server server2
+
+# Bootstrap config files to ZooKeeper
+java -classpath "server/solr-webapp/webapp/WEB-INF/lib/*:server/lib/ext/*" org.apache.solr.cloud.ZkCLI -cmd bootstrap -zkhost 127.0.0.1:9983 -solrhome server/solr -runzk 8983
+
+cd server
+java -DSTOP.PORT=7983 -DSTOP.KEY=key -jar start.jar --stop
+java -Xmx512m -DzkRun -DnumShards=2 -Dsolr.directoryFactory=solr.HdfsDirectoryFactory -Dsolr.lock.type=hdfs -Dsolr.hdfs.home=hdfs://127.0.0.1:8020/solr1 -Dsolr.hdfs.confdir=$hadoop_conf_dir -DSTOP.PORT=7983 -DSTOP.KEY=key -jar start.jar 1>example.log 2>&1 &
+
+cd ../server2
+java -DSTOP.PORT=6574 -DSTOP.KEY=key -jar start.jar --stop
+java -Xmx512m -Djetty.port=7574 -DzkHost=127.0.0.1:9983 -DnumShards=2 -Dsolr.directoryFactory=solr.HdfsDirectoryFactory -Dsolr.lock.type=hdfs -Dsolr.hdfs.home=hdfs://127.0.0.1:8020/solr2 -Dsolr.hdfs.confdir=$hadoop_conf_dir -DSTOP.PORT=6574 -DSTOP.KEY=key -jar start.jar 1>example2.log 2>&1 &
+
+
+
+## Start HDFS+YARN
+##################
 
 # start hdfs
 echo "start hdfs"
@@ -127,10 +153,6 @@ echo "stop any running namenode"
 $HADOOP_HOME/sbin/stop-dfs.sh
 
 echo "format namenode"
-
-if [ -d "/tmp/hadoop/tmp" ]; then
-  rm -rf /tmp/hadoop/tmp/*
-fi
 
 $HADOOP_HOME/bin/hdfs namenode -format -force
 

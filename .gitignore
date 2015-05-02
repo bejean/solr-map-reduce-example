@@ -1,6 +1,8 @@
-/solr*
+/solr-*
 /hadoop-*
 *~
 example*.log
 hadoop
 hadoop_conf/conf.save
+solr
+
