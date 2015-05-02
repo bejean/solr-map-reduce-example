@@ -169,16 +169,19 @@ cp -f ../solr_conf/schema.xml server/solr/collection1/conf/schema.xml
 # setting up a 2nd node
 cp -rf server server2
 
+# stop solr nodes
+echo "start solr nodes"
+cd server2
+java -DSTOP.PORT=6574 -DSTOP.KEY=key -jar start.jar --stop 1>stop.log 2>&1 &
+cd ../server
+java -DSTOP.PORT=7983 -DSTOP.KEY=key -jar start.jar --stop 1>stop.log 2>&1 &
+sleep 5
+
 # Bootstrap config files to ZooKeeper
 # unzip solr.war because solr was necver stared and so jar file are not available in server/solr-webapp/webapp
 unzip -o server/webapps/solr.war -d server/solr-webapp/webapp
 java -classpath "server/solr-webapp/webapp/WEB-INF/lib/*:server/lib/ext/*" org.apache.solr.cloud.ZkCLI -cmd bootstrap -zkhost 127.0.0.1:9983 -solrhome server/solr -runzk 8983
-
-# stop solr nodes
-cd server2
-java -DSTOP.PORT=6574 -DSTOP.KEY=key -jar start.jar --stop
-cd ../server
-java -DSTOP.PORT=7983 -DSTOP.KEY=key -jar start.jar --stop
+sleep 5
 
 echo "start solr node 1 (8983)"
 cd ../server
