@@ -167,6 +167,7 @@ java -DSTOP.PORT=7983 -DSTOP.KEY=key -jar start.jar --stop 1>stop.log 2>&1 &
 sleep 5
 
 # Bootstrap config files to ZooKeeper
+cd $SOLR_HOME
 java -classpath "server/solr-webapp/webapp/WEB-INF/lib/*:server/lib/ext/*" org.apache.solr.cloud.ZkCLI -cmd bootstrap -zkhost 127.0.0.1:9983 -solrhome server/solr -runzk 8983
 sleep 5
 
