@@ -162,6 +162,7 @@ cd solr
 mv example server
 
 echo "copy in twitter schema.xml file"
+pwd
 cp -f ../solr_conf/schema.xml server/solr/collection1/conf/schema.xml
 
 # setting up a 2nd node
