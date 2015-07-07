@@ -6,3 +6,4 @@ hadoop
 hadoop_conf/conf.save
 solr
 
+scripts/tmp
