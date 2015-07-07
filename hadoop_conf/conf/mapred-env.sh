@@ -14,6 +14,8 @@
 # limitations under the License.
 
 # export JAVA_HOME=/home/y/libexec/jdk1.6.0/
+# macos 
+# export JAVA_HOME=`/usr/libexec/java_home`
 
 export HADOOP_JOB_HISTORYSERVER_HEAPSIZE=1000
 

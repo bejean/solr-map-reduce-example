@@ -26,6 +26,21 @@ cd $HOME
 # DataNodes web port   : 50075
 #########################################################
 
+## Check working directory
+##########################
+if [ ! -d "$WORK_HOME" ]; then
+  echo "$WORK_HOME doesn't exist. Stop !" 
+  echo "Create it with appropriate read/write access." 
+  exit 1
+fi
+
+if [ "$(ls -A $WORK_HOME)" ]; then
+  echo "$WORK_HOME not empty. Stop !" 
+  exit 1
+fi
+
+cp -r scripts $WORK_HOME/.
+
 ## Get Hadoop
 #############
 
@@ -43,32 +58,22 @@ else
 fi
 
 # extract hadoop
-echo "Setup Hadoop distribution in $HADOOP_DISTRIB"
-if [ -d "hadoop" ]; then
-  rm hadoop
+echo "Setup Hadoop distribution in $WORK_HOME/$HADOOP_DISTRIB"
+tar -zxf "$HADOOP_DISTRIB.tar.gz" -C $WORK_HOME/.
+if [[ $? -ne 0 ]]
+then
+  echo "Failed to extract hadoop from $HADOOP_DISTRIB.tar.gz to $WORK_HOME/$HADOOP_DISTRIB"
+  exit 1
 fi
-if [ -d "$HADOOP_DISTRIB" ]; then
-  rm -rf "$HADOOP_DISTRIB"
-fi
-if [ ! -d "$HADOOP_DISTRIB" ]; then
-    tar -zxf "$HADOOP_DISTRIB.tar.gz"
-    if [[ $? -ne 0 ]]
-    then
-      echo "Failed to extract hadoop from $HADOOP_DISTRIB.tar.gz"
-      exit 1
-    fi
-    ln -s $HADOOP_DISTRIB hadoop
-    mv $HOME/hadoop/etc/hadoop $HOME/hadoop/etc/hadoop.original
-    cp -r $HOME/hadoop_conf/conf $HOME/hadoop/etc/hadoop
-fi
+ln -s $WORK_HOME/$HADOOP_DISTRIB $WORK_HOME/hadoop
+mv $WORK_HOME/hadoop/etc/hadoop $WORK_HOME/hadoop/etc/hadoop.original
+cp -r $HOME/hadoop_conf/conf $WORK_HOME/hadoop/etc/hadoop
+sed -i -e "s|WORK_HOME|${WORK_HOME}|g" $WORK_HOME/hadoop/etc/hadoop/core-site.xml
+sed -i -e "s|WORK_HOME|${WORK_HOME}|g" $WORK_HOME/hadoop/etc/hadoop/hdfs-site.xml
 
-# make the hadoop data dirs
-if [ -d "hadoop-data" ]; then
-    rm -rf hadoop-data
-fi
-mkdir hadoop-data
-mkdir hadoop-data/hdfs_disk1
-mkdir hadoop-data/tmp
+mkdir $WORK_HOME/hadoop-data
+mkdir $WORK_HOME/hadoop-data/hdfs_disk1
+mkdir $WORK_HOME/hadoop-data/tmp
 
 ## Get Solr
 ###########
@@ -87,47 +92,35 @@ else
 fi
 
 # extract solr
-echo "Setup Solr distribution in $SOLR_DISTRIB"
-if [ -d "solr" ]; then
-  rm solr
+echo "Setup Solr distribution in $WORK_HOME/$SOLR_DISTRIB"
+tar -zxf "$SOLR_DISTRIB.tgz" -C $WORK_HOME/.
+if [[ $? -ne 0 ]]
+then
+  echo "Failed to extract Solr from $SOLR_DISTRIB.tgz to $WORK_HOME/$SOLR_DISTRIB"
+  exit 1
 fi
-if [ -d "$SOLR_DISTRIB" ]; then
-  rm -rf "$SOLR_DISTRIB"
-fi
-if [ ! -d "$SOLR_DISTRIB" ]; then
-    tar -zxf "$SOLR_DISTRIB.tgz"
-    if [[ $? -ne 0 ]]
-    then
-      echo "Failed to extract Solr from $SOLR_DISTRIB.tgz"
-      exit 1
-    fi
-    ln -s $SOLR_DISTRIB solr
-fi
-
+ln -s $WORK_HOME/$SOLR_DISTRIB $WORK_HOME/solr
 
 ## Start HDFS+YARN
 ##################
 
-# start hdfs
-echo "start hdfs"
 
-echo "stop any running namenode"
-$HADOOP_HOME/sbin/stop-dfs.sh
+#echo "stop any running namenode"
+#$HADOOP_HOME/sbin/stop-dfs.sh
 
-echo "format namenode"
-
+echo "format hdfs namenode"
 $HADOOP_HOME/bin/hdfs namenode -format -force
 
+# start hdfs
+echo "start hdfs"
 $HADOOP_HOME/sbin/start-dfs.sh
 
 # start yarn
 echo "start yarn"
-
-$HADOOP_HOME/sbin/stop-yarn.sh
 $HADOOP_HOME/sbin/start-yarn.sh
 
 # hack wait for datanode to be ready and happy and able
-echo "sleep 10"
+echo "Waiting HDFS and YARN start ..."
 sleep 10
 
 ## Upload Sample Data
@@ -137,7 +130,6 @@ sleep 10
 samplefile=sample-statuses-20120906-141433-medium.avro
 $HADOOP_HOME/bin/hdfs dfs -mkdir /indir
 $HADOOP_HOME/bin/hdfs dfs -put $samplefile /indir/$samplefile
-
 
 ## Start Solr (2 nodes)
 #######################
@@ -153,19 +145,19 @@ unzip -o server/webapps/solr.war -d server/solr-webapp/webapp
 echo "copy in twitter schema.xml file"
 # pwd hack, because otherwise for some reasons the next cp command failed !!!
 pwd
-cp -f ../solr_conf/schema.xml server/solr/$COLLECTION/conf/.
-cp -f ../solr_conf/set-map-reduce-classpath.sh server/scripts/map-reduce/.
+cp -f $HOME/solr_conf/schema.xml server/solr/$COLLECTION/conf/.
+cp -f $HOME/solr_conf/set-map-reduce-classpath.sh server/scripts/map-reduce/.
 
 # setting up a 2nd node
 cp -rf server server2
 
 # stop solr nodes
-echo "start solr nodes"
-cd $SOLR_HOME/server2
-java -DSTOP.PORT=6574 -DSTOP.KEY=key -jar start.jar --stop 1>stop.log 2>&1 &
-cd $SOLR_HOME/server
-java -DSTOP.PORT=7983 -DSTOP.KEY=key -jar start.jar --stop 1>stop.log 2>&1 &
-sleep 5
+#echo "start solr nodes"
+#cd $SOLR_HOME/server2
+#java -DSTOP.PORT=6574 -DSTOP.KEY=key -jar start.jar --stop 1>stop.log 2>&1 &
+#cd $SOLR_HOME/server
+#java -DSTOP.PORT=7983 -DSTOP.KEY=key -jar start.jar --stop 1>stop.log 2>&1 &
+#sleep 5
 
 # Bootstrap config files to ZooKeeper
 cd $SOLR_HOME
@@ -181,7 +173,18 @@ cd $SOLR_HOME/server2
 java -Xmx512m -Djetty.port=7574 -DzkHost=127.0.0.1:9983 -DnumShards=2 -Dsolr.directoryFactory=solr.HdfsDirectoryFactory -Dsolr.lock.type=hdfs -Dsolr.hdfs.home=hdfs://127.0.0.1:8020/solr2 -Dsolr.hdfs.confdir=$HADOOP_CONF_DIR -DSTOP.PORT=6574 -DSTOP.KEY=key -jar start.jar 1>example2.log 2>&1 &
 
 # wait for solr to be ready
-echo "sleep 15"
+echo "Waiting Solr nodes start ..."
 sleep 15
 
 cd $HOME
+
+cp log4j.properties $WORK_HOME/.
+cp readAvroContainer.conf $WORK_HOME/.
+
+#--------------------
+echo "HDFS, YARN and Solr nodes stated"
+echo "Name node web interface available at http://localhost:50070/"
+echo "Data node web interface available at http://localhost:50075/"
+echo "Solr node 1 web interface available at http://localhost:8983/"
+echo "Solr node 2 web interface available at http://localhost:7574/"
+

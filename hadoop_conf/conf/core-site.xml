@@ -22,6 +22,6 @@
     </property>
     <property>
         <name>hadoop.tmp.dir</name>
-        <value>file:///opt/solr/solr-map-reduce-example/hadoop-data/tmp/hadoop-${user.name}</value>
+        <value>file://WORK_HOME/hadoop-data/tmp/hadoop-${user.name}</value>
     </property>
 </configuration>
